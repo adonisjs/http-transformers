@@ -9,7 +9,7 @@
 
 import { test } from '@japa/runner'
 import { debug } from '../src/debug.ts'
-import { apiSerializer, container } from './helpers.ts'
+import { apiSerializer, container, metadataKeyApiSerializer } from './helpers.ts'
 import { User } from './fixtures/models/user.ts'
 import { Post } from './fixtures/models/posts.ts'
 import { Email } from './fixtures/models/email.ts'
@@ -473,6 +473,36 @@ test.group('Types | Fixtures', () => {
     }>()
 
     expectTypeOf(userDataObject).toEqualTypeOf<UserData['basicInfo']>()
+  })
+
+  test('infer custom pagination metadata key', async ({ expectTypeOf }) => {
+    const user = new User()
+    UserTransformer
+    const result = await metadataKeyApiSerializer.serialize(
+      UserTransformer.paginate([user], {}).useVariant('basicInfo'),
+      container.createResolver()
+    )
+
+    expectTypeOf(result).toEqualTypeOf<{
+      data: {
+        id: number
+        name: string
+        profile?:
+          | {
+              id: number
+              twitterHandle: string | null
+              githubUsername: string | null
+            }
+          | null
+          | undefined
+      }[]
+      pagination: {
+        totalItems: number
+        currentPage: number
+      }
+    }>()
+
+    expectTypeOf(result).not.toHaveProperty('metadata')
   })
 
   test('pick and method method to filter out functions', async () => {

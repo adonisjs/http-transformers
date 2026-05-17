@@ -533,18 +533,23 @@ export type UnpackAsTopLevelCollection<T, Wrapper extends string | undefined> =
  *
  * @internal
  */
-export type UnpackAsTopLevelPaginator<T, Wrapper extends string, TransformedMetaData> =
+export type UnpackAsTopLevelPaginator<
+  T,
+  Wrapper extends string,
+  WrapperMeta extends string | 'metadata',
+  TransformedMetaData,
+> =
   T extends PaginatorContract<infer Transformer, any, infer Variant>
     ? TransformedMetaData extends Record<string, any>
       ? Prettify<
           {
             [K in Wrapper]: InferData<Transformer, Variant, -1, 0>[]
-          } & { metadata: TransformedMetaData }
+          } & { [K in WrapperMeta]: TransformedMetaData }
         >
       : Prettify<
           {
             [K in Wrapper]: InferData<Transformer, Variant, -1, 0>[]
-          } & { metadata: any }
+          } & { [K in WrapperMeta]: any }
         >
     : never
 

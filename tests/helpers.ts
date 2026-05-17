@@ -26,6 +26,24 @@ class WrappedApiSerializer extends BaseSerializer<{
   }
 }
 
+class MetadataKeyApiSerializer extends BaseSerializer<{
+  MetadataKey: 'pagination'
+  PaginationMetaData: {
+    totalItems: number
+    currentPage: number
+  }
+}> {
+  wrap: undefined = undefined
+  metadataKey: 'pagination' = 'pagination'
+  definePaginationMetaData(_: unknown): {
+    totalItems: number
+    currentPage: number
+  } {
+    return { totalItems: 10, currentPage: 10 }
+  }
+}
+
 export const apiSerializer = new ApiSerializer()
 export const wrappedApiSerializer = new WrappedApiSerializer()
+export const metadataKeyApiSerializer = new MetadataKeyApiSerializer()
 export const container = new Container()
