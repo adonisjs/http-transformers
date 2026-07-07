@@ -249,7 +249,7 @@ export abstract class BaseTransformer<T> {
    * ```ts
    * class UserTransformer extends BaseTransformer<User> {
    *   toObject() {
-   *     return this.omit(this.resource, ['password', 'internalId'])
+   *     return this.omit(this.resource.toAttributes(), ['password', 'internalId'])
    *   }
    * }
    * ```
