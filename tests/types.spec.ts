@@ -22,6 +22,9 @@ import { ProfileTransformer } from './fixtures/transformers/profile.ts'
 import {
   type InferVariants,
   type InferData,
+  type InferDataKeys,
+  type InferDataShape,
+  type InferDataIdentity,
   type ResourceData,
   type ExtractTransformerVariants,
 } from '../src/types.ts'
@@ -63,7 +66,7 @@ test.group('Types', () => {
     type ExampleData = InferData<typeof exampleTransformer>
     debug('%O', exampleDataObject)
 
-    expectTypeOf<ExampleData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<ExampleData>>().toEqualTypeOf<{
       id: number
       profile: {
         id: number
@@ -115,7 +118,7 @@ test.group('Types', () => {
     type ExampleData = InferData<typeof exampleTransformer>
     debug('%O', exampleDataObject)
 
-    expectTypeOf<ExampleData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<ExampleData>>().toEqualTypeOf<{
       id: number
       profile: {
         id: number
@@ -172,7 +175,7 @@ test.group('Types', () => {
     type ExampleData = InferData<typeof exampleTransformer>
     debug('%O', exampleDataObject)
 
-    expectTypeOf<ExampleData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<ExampleData>>().toEqualTypeOf<{
       id: number
       profile?:
         | {
@@ -247,7 +250,7 @@ test.group('Types', () => {
       container.createResolver()
     )
     type ExampleData = InferData<typeof exampleTransformer>
-    expectTypeOf<ExampleData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<ExampleData>>().toEqualTypeOf<{
       id: number
       scores: bigint
     }>()
@@ -267,7 +270,7 @@ test.group('Types | Fixtures', () => {
     type PostData = InferData<typeof postTransformer>
     debug('%O', postDataObject)
 
-    expectTypeOf<PostData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<PostData>>().toEqualTypeOf<{
       id: number
       title: string
       config: { hello: string } | boolean
@@ -326,7 +329,7 @@ test.group('Types | Fixtures', () => {
 
     debug('%o', userDataObject)
 
-    expectTypeOf<UserData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<UserData>>().toEqualTypeOf<{
       id: number
       name: string
       profile?:
@@ -388,7 +391,7 @@ test.group('Types | Fixtures', () => {
 
     debug('%O', profileDataObject)
 
-    expectTypeOf<ProfileData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<ProfileData>>().toEqualTypeOf<{
       id: number
       twitterHandle: string | null
       githubUsername: string | null
@@ -423,7 +426,7 @@ test.group('Types | Fixtures', () => {
 
     debug('%o', emailDataObject)
 
-    expectTypeOf<EmailData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<EmailData>>().toEqualTypeOf<{
       id: number
       email: string
       is_verified: boolean
@@ -457,7 +460,7 @@ test.group('Types | Fixtures', () => {
     type UserData = InferVariants<typeof userTransformer>
     debug('%O', userDataObject)
 
-    expectTypeOf<UserData>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<UserData>>().toEqualTypeOf<{
       basicInfo: {
         id: number
         name: string
@@ -564,7 +567,7 @@ test.group('Types | Fixtures', () => {
     type TransformerOutput = InferData<typeof transformer>
 
     // Verify the final output doesn't include omitted properties
-    expectTypeOf<TransformerOutput>().toEqualTypeOf<{
+    expectTypeOf<InferDataShape<TransformerOutput>>().toEqualTypeOf<{
       id: number
       name: string
       email: string
@@ -573,5 +576,58 @@ test.group('Types | Fixtures', () => {
 
     expectTypeOf(output).not.toHaveProperty('password')
     expectTypeOf(output).not.toHaveProperty('internalId')
+  })
+
+  test('attaches phantom identity without changing the JSON shape', ({ expectTypeOf }) => {
+    class UserLikeTransformer extends BaseTransformer<{}> {
+      toObject() {
+        return { id: 1, name: 'user' }
+      }
+    }
+    class GuestLikeTransformer extends BaseTransformer<{}> {
+      toObject() {
+        return { id: 1, name: 'guest' }
+      }
+    }
+
+    type UserLike = InferData<UserLikeTransformer>
+    type GuestLike = InferData<GuestLikeTransformer>
+
+    expectTypeOf<InferDataShape<UserLike>>().toEqualTypeOf<{ id: number; name: string }>()
+    expectTypeOf<InferDataShape<GuestLike>>().toEqualTypeOf<{ id: number; name: string }>()
+    expectTypeOf<UserLike>().toMatchTypeOf<InferDataIdentity<UserLikeTransformer, 'toObject'>>()
+    expectTypeOf<GuestLike>().toMatchTypeOf<InferDataIdentity<GuestLikeTransformer, 'toObject'>>()
+  })
+
+  test('preserves variant identity for identical JSON shapes', ({ expectTypeOf }) => {
+    class ExampleTransformer extends BaseTransformer<{}> {
+      toObject() {
+        return { id: 1 }
+      }
+      toSummary() {
+        return { id: 1 }
+      }
+    }
+
+    type ObjectOutput = InferData<ExampleTransformer, 'toObject'>
+    type SummaryOutput = InferData<ExampleTransformer, 'toSummary'>
+    type IsEqual<A, B> =
+      (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false
+
+    expectTypeOf<InferDataShape<ObjectOutput>>().toEqualTypeOf<InferDataShape<SummaryOutput>>()
+    expectTypeOf<IsEqual<ObjectOutput, SummaryOutput>>().toEqualTypeOf<false>()
+  })
+
+  test('excludes identity brands from keyof T & string', ({ expectTypeOf }) => {
+    class ExampleTransformer extends BaseTransformer<{}> {
+      toObject() {
+        return { id: 1, name: 'example' }
+      }
+    }
+
+    type ExampleData = InferData<ExampleTransformer>
+    expectTypeOf<InferDataKeys<ExampleData>>().toEqualTypeOf<'id' | 'name'>()
+    expectTypeOf<keyof ExampleData & string>().toEqualTypeOf<'id' | 'name'>()
+    expectTypeOf<keyof ExampleData extends string ? true : false>().toEqualTypeOf<false>()
   })
 })
