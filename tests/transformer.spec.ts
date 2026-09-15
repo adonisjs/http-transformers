@@ -9,7 +9,7 @@
 
 import { test } from '@japa/runner'
 import { inject } from '@adonisjs/fold'
-import { type InferData } from '../src/types.ts'
+import { type InferData, type InferDataShape } from '../src/types.ts'
 import { type Paginator } from '../src/paginator.ts'
 import { BaseTransformer } from '../src/base_transformer.ts'
 import { apiSerializer, container, wrappedApiSerializer } from './helpers.ts'
@@ -35,7 +35,7 @@ test.group('Transformer', () => {
       UserTransformer.transform(null)!,
       container.createResolver()
     )
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       email: string
@@ -62,7 +62,7 @@ test.group('Transformer', () => {
       UserTransformer.transform(undefined as any)!,
       container.createResolver()
     )
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       email: string
@@ -95,7 +95,7 @@ test.group('Transformer', () => {
     )
 
     assert.deepEqual(userData, { user: null })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       user: {
         id: number
         fullName: string | null
@@ -124,7 +124,11 @@ test.group('Transformer', () => {
       UserTransformer.transform(undefined as any)!,
       container.createResolver()
     )
-    expectTypeOf(userData).toEqualTypeOf<{ id: number; fullName: string | null; email: string }>()
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
+      id: number
+      fullName: string | null
+      email: string
+    }>()
   }).throws(
     'Cannot transform undefined value. Use "this.whenLoaded(value)" to allow undefined values'
   )
@@ -155,7 +159,11 @@ test.group('Transformer', () => {
       container.createResolver()
     )
     assert.deepEqual(userData, { id: 1, fullName: null, email: 'foo@bar.com' })
-    expectTypeOf(userData).toEqualTypeOf<{ id: number; fullName: string | null; email: string }>()
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
+      id: number
+      fullName: string | null
+      email: string
+    }>()
   })
 
   test('transform with relationships', async ({ assert, expectTypeOf }) => {
@@ -212,7 +220,7 @@ test.group('Transformer', () => {
       fullName: null,
       emails: [{ id: 1, email: 'foo@bar.com', isVerified: true }],
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       emails: { id: number; email: string; isVerified: boolean }[]
@@ -273,7 +281,7 @@ test.group('Transformer', () => {
         emails: [{ id: 1, email: 'foo@bar.com', isVerified: true }],
       },
     ])
-    expectTypeOf(userData).toEqualTypeOf<
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<
       {
         id: number
         fullName: string | null
@@ -373,7 +381,7 @@ test.group('Transformer', () => {
       fullName: null,
       emails: undefined,
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       emails?: { id: number; email: string; isVerified: boolean }[] | undefined
@@ -437,7 +445,7 @@ test.group('Transformer', () => {
       fullName: null,
       emails: [{ id: 1, email: 'foo@bar.com', isVerified: true }],
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       emails?: { id: number; email: string; isVerified: boolean }[] | undefined
@@ -494,7 +502,7 @@ test.group('Transformer', () => {
       container.createResolver()
     )
 
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       emails?:
@@ -602,7 +610,7 @@ test.group('Transformer', () => {
         "id": 1,
       }
     `)
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       emails?:
@@ -683,7 +691,7 @@ test.group('Transformer', () => {
       container.createResolver()
     )
     assert.deepEqual(userData, { id: 1, fullName: null, email: null })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       email: {
@@ -734,7 +742,7 @@ test.group('Transformer', () => {
       UserTransformer.transform(user),
       container.createResolver()
     )
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       email: {
@@ -773,7 +781,7 @@ test.group('Transformer', () => {
       container.createResolver()
     )
     assert.deepEqual(userData, { id: 1, fullName: null, email: 'foo@bar.com' })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       email: string
@@ -806,7 +814,7 @@ test.group('Transformer', () => {
       container.createResolver()
     )
     assert.deepEqual(userData, [{ id: 1, fullName: null, email: 'foo@bar.com' }])
-    expectTypeOf(userData).toEqualTypeOf<
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<
       {
         id: number
         fullName: string | null
@@ -866,7 +874,7 @@ test.group('Transformer', () => {
       id: 1,
       fullName: null,
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
     }>()
@@ -924,7 +932,7 @@ test.group('Transformer', () => {
       fullName: null,
     })
 
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
     }>()
@@ -983,7 +991,7 @@ test.group('Transformer', () => {
         fullName: null,
       },
     ])
-    expectTypeOf(userData).toEqualTypeOf<
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<
       {
         id: number
         fullName: string | null
@@ -1031,7 +1039,7 @@ test.group('Transformer', () => {
       email: 'foo@bar.com',
       loggingLevel: 'info',
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       email: string
@@ -1086,7 +1094,7 @@ test.group('Transformer', () => {
       fullName: null,
       emails: [{ id: 1, email: 'foo@bar.com' }],
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       emails: { id: number; email: string }[]
@@ -1128,7 +1136,7 @@ test.group('Transformer', () => {
         currentPage: 1,
       },
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       data: {
         id: number
         fullName: string | null
@@ -1208,7 +1216,7 @@ test.group('Transformer', () => {
         emails: [{ id: 1, email: 'foo@bar.com' }],
       },
     ])
-    expectTypeOf(userData).toEqualTypeOf<
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<
       {
         id: number
         fullName: string | null
@@ -1257,7 +1265,7 @@ test.group('Transformer', () => {
       data: [{ id: 1, email: 'foo@bar.com', isVerified: true }],
       metadata: {},
     })
-    expectTypeOf(emailData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof emailData>>().toEqualTypeOf<{
       data: {
         id: number
         email: string
@@ -1309,7 +1317,7 @@ test.group('Transformer', () => {
         currentPage: 1,
       },
     })
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       data: {
         id: number
         fullName: string | null
@@ -1392,7 +1400,7 @@ test.group('Transformer', () => {
       },
     })
 
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       data: {
         id: number
         fullName: string | null
@@ -1461,7 +1469,7 @@ test.group('Transformer', () => {
       },
     })
 
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       data: {
         id: number
         fullName: string | null
@@ -1539,7 +1547,7 @@ test.group('Transformer | wrapping', () => {
     )
     type UserData = InferData<UserTransformer>
 
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       data: { id: number; fullName: string | null; email: string }
     }>()
     expectTypeOf(userData).toEqualTypeOf<{ data: UserData }>()
@@ -1575,9 +1583,10 @@ test.group('Transformer | wrapping', () => {
     type UserData = InferData<UserTransformer>
 
     expectTypeOf(userData).toEqualTypeOf<{ data: UserData[] } & { metadata?: never }>()
-    expectTypeOf(userData).toEqualTypeOf<
-      { data: { id: number; fullName: string | null; email: string }[] } & { metadata?: never }
-    >()
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
+      data: { id: number; fullName: string | null; email: string }[]
+      metadata?: never
+    }>()
 
     assert.deepEqual(userData, { data: [{ id: 1, fullName: null, email: 'foo@bar.com' }] })
   })
@@ -1610,7 +1619,7 @@ test.group('Transformer | wrapping', () => {
     type UserData = InferData<UserTransformer>
 
     expectTypeOf(userData.data).toEqualTypeOf<UserData[]>()
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       data: { id: number; fullName: string | null; email: string }[]
       metadata: {
         currentPage: number
@@ -1720,7 +1729,7 @@ test.group('Transformer | wrapping', () => {
     type PostData = InferData<PostTransformer>
 
     expectTypeOf(postData.data).toEqualTypeOf<PostData>()
-    expectTypeOf(postData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof postData>>().toEqualTypeOf<{
       data: {
         id: number
         title: string
@@ -1769,7 +1778,7 @@ test.group('Transformer | wrapping', () => {
     )
     type UserData = InferData<UserTransformer>
 
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       data: {
         user: { id: number; fullName: string | null; email: string }
       }
@@ -1816,7 +1825,7 @@ test.group('Transformer | wrapping', () => {
     type UserData = InferData<UserTransformer>
 
     expectTypeOf(userData).toEqualTypeOf<{ user: UserData }>()
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       user: { id: number; fullName: string | null; email: string }
     }>()
 
@@ -1856,7 +1865,7 @@ test.group('Transformer | wrapping', () => {
     type UserData = InferData<UserTransformer>
 
     expectTypeOf(userData).toEqualTypeOf<UserData>()
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       id: number
       fullName: string | null
       email: string
@@ -1896,7 +1905,9 @@ test.group('Transformer | wrapping', () => {
     type UserData = InferData<UserTransformer>
 
     expectTypeOf(userData).toEqualTypeOf<UserData[]>()
-    expectTypeOf(userData).toEqualTypeOf<{ id: number; fullName: string | null; email: string }[]>()
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<
+      { id: number; fullName: string | null; email: string }[]
+    >()
 
     assert.deepEqual(userData, [{ id: 1, fullName: null, email: 'foo@bar.com' }])
   })
@@ -1934,7 +1945,7 @@ test.group('Transformer | wrapping', () => {
     type UserData = InferData<UserTransformer>
 
     expectTypeOf(userData).toEqualTypeOf<{ user: UserData }>()
-    expectTypeOf(userData).toEqualTypeOf<{
+    expectTypeOf<InferDataShape<typeof userData>>().toEqualTypeOf<{
       user: { id: number; fullName: string | null; email: string }
     }>()
 

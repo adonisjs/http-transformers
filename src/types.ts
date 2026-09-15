@@ -355,9 +355,7 @@ export type ExtractTransformerVariants<Transformer> = Exclude<
  * ```
  */
 export type ResourceDataTypes =
-  | JSONDataTypes
-  | CollectionContract<any, any, any>
-  | ItemContract<any, any, any>
+  JSONDataTypes | CollectionContract<any, any, any> | ItemContract<any, any, any>
 
 /**
  * A record of resource data types. This is what every transformer
@@ -395,23 +393,16 @@ export type UnpackKeyValue<
 > = [Value[0]] extends [never]
   ? SerializeJSONTypes<Value[1]>
   : Value[0] extends ItemContract<infer Transformer, infer LocalMaxDepth, infer Variant>
-    ?
-        | InferData<
+    ? | InferData<Transformer, Variant, MaxDepth extends -1 ? LocalMaxDepth : MaxDepth, Next[Depth]>
+      | SerializeJSONTypes<Value[1]>
+    : Value[0] extends CollectionContract<infer Transformer, infer LocalMaxDepth, infer Variant>
+      ? | InferData<
             Transformer,
             Variant,
             MaxDepth extends -1 ? LocalMaxDepth : MaxDepth,
             Next[Depth]
-          >
+          >[]
         | SerializeJSONTypes<Value[1]>
-    : Value[0] extends CollectionContract<infer Transformer, infer LocalMaxDepth, infer Variant>
-      ?
-          | InferData<
-              Transformer,
-              Variant,
-              MaxDepth extends -1 ? LocalMaxDepth : MaxDepth,
-              Next[Depth]
-            >[]
-          | SerializeJSONTypes<Value[1]>
       : SerializeJSONTypes<Value[1]>
 
 /**
@@ -450,11 +441,13 @@ export type LimitDepth<Key, Value, MaxDepth extends number, Depth extends number
  * @internal
  */
 export type UnpackOptionalValues<Data, MaxDepth extends number, Depth extends number> = {
-  [O in {
-    [K in keyof Data]: [undefined] extends [Data[K]]
-      ? LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
-      : never
-  }[keyof Data]]?: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
+  [
+    O in {
+      [K in keyof Data]: [undefined] extends [Data[K]]
+        ? LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
+        : never
+    }[keyof Data]
+  ]?: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
 }
 
 /**
@@ -469,11 +462,13 @@ export type UnpackOptionalValues<Data, MaxDepth extends number, Depth extends nu
  * @internal
  */
 export type UnpackRequiredValues<Data, MaxDepth extends number, Depth extends number> = {
-  [O in {
-    [K in keyof Data]: [undefined] extends [Data[K]]
-      ? never
-      : LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
-  }[keyof Data]]: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
+  [
+    O in {
+      [K in keyof Data]: [undefined] extends [Data[K]]
+        ? never
+        : LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
+    }[keyof Data]
+  ]: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
 }
 
 /**
@@ -605,11 +600,105 @@ export type UnpackTopLevelValues<Data> = Prettify<
   }
 >
 
+declare const inferTransformerBrand: unique symbol
+declare const inferVariantBrand: unique symbol
+
+/**
+ * Phantom identity attached to {@link InferData}. Unique-symbol keys carry the
+ * transformer class and variant after {@link UnpackValues} has expanded the
+ * output to a plain object.
+ *
+ * Without this, {@link UnpackValues} erases the transformer class, so tooling
+ * that inspects the expanded object cannot tell which transformer produced it.
+ * The brands are optional unique symbols: they do not exist at runtime, they
+ * are skipped by `{ [key: string]: ... }` index signatures (so the result stays
+ * assignable to {@link JSONDataTypes}), and OpenAPI generators that walk string
+ * keys ignore them automatically.
+ *
+ * Must be a type alias, not an interface. Interfaces do not receive an implicit
+ * index signature, which makes them unassignable to {@link JSONDataTypes} and
+ * hides generic mapped keys during assignability checks.
+ *
+ * @template Transformer - The transformer class that produced the data
+ * @template Variant - The variant method name used to produce the data
+ *
+ * ```typescript
+ * // OpenAPI / client codegen: recover the transformer after unpacking so `$ref`
+ * // names can be `User` / `Guest` instead of collapsing both to `{ id, name }`.
+ * class UserTransformer extends BaseTransformer<User> {
+ *   toObject() {
+ *     return { id: this.resource.id, name: this.resource.name }
+ *   }
+ * }
+ * class GuestTransformer extends BaseTransformer<Guest> {
+ *   toObject() {
+ *     return { id: this.resource.id, name: this.resource.name }
+ *   }
+ * }
+ *
+ * type UserData = InferData<UserTransformer>
+ * type GuestData = InferData<GuestTransformer>
+ * type SameJson = InferDataShape<UserData> extends InferDataShape<GuestData> ? true : false
+ * // true — the JSON fields match. Tooling still reads InferDataIdentity type
+ * // arguments (and unique-symbol property types) to name `User` vs `Guest`.
+ *
+ * // Variants stay distinct even when they return the same fields, so an RPC
+ * // layer or SDK can dispatch `toObject` vs `toSummary` from the payload type.
+ * type ObjectOutput = InferData<UserTransformer, 'toObject'>
+ * type SummaryOutput = InferData<UserTransformer, 'toSummary'>
+ *
+ * // Gotcha: unique-symbol keys appear in `keyof T`. Intersect with `string`
+ * // (or use {@link InferDataKeys}) to keep only serialized field names.
+ * type Wrong = keyof UserData
+ * // serialized fields plus unique-symbol identity keys
+ * type Fields = keyof UserData & string
+ * // 'id' | 'name'
+ * ```
+ */
+export type InferDataIdentity<Transformer, Variant extends string> = {
+  readonly [inferTransformerBrand]?: Transformer
+  readonly [inferVariantBrand]?: Variant
+}
+
+/**
+ * Field names of an {@link InferData} result, excluding unique-symbol identity
+ * keys. Prefer this (or `keyof T & string`) when mapping over transformer output.
+ *
+ * @template T - An {@link InferData} result (or any branded object type)
+ *
+ * ```typescript
+ * type UserData = InferData<UserTransformer>
+ * type Fields = InferDataKeys<UserData>
+ * // 'id' | 'name' | 'posts'
+ * ```
+ */
+export type InferDataKeys<T> = keyof T & string
+
+/**
+ * JSON field types of {@link InferData} without phantom identity keys.
+ * Recursively drops unique-symbol brands from nested transformer outputs.
+ *
+ * @template T - An {@link InferData} result (or a structure containing them)
+ *
+ * ```typescript
+ * type UserData = InferData<UserTransformer>
+ * type UserJson = InferDataShape<UserData>
+ * // { id: number; name: string; posts: { id: number; title: string }[] }
+ * ```
+ */
+export type InferDataShape<T> = T extends readonly (infer Item)[]
+  ? InferDataShape<Item>[]
+  : T extends object
+    ? { [K in keyof T as K extends string ? K : never]: InferDataShape<T[K]> }
+    : T
+
 /**
  * Infers the serialized data structure of a transformer by extracting the return type
  * of a specific variant method and unpacking it recursively.
  *
  * This is the primary type used to extract the TypeScript type of a transformer's output.
+ * The result is the unpacked object shape intersected with {@link InferDataIdentity},
+ * so the originating transformer and variant can be recovered after unpacking.
  *
  * @template Transformer - The transformer class to infer data from
  * @template Variant - The variant method name to use (defaults to 'toObject')
@@ -628,7 +717,10 @@ export type UnpackTopLevelValues<Data> = Prettify<
  * }
  *
  * type UserData = InferData<UserTransformer>
- * // Result: { id: number; name: string; posts: PostData[] }
+ * // Result: { id: number; name: string; posts: PostData[] } & InferDataIdentity<UserTransformer, 'toObject'>
+ *
+ * type Fields = InferDataKeys<UserData>
+ * // 'id' | 'name' | 'posts'
  * ```
  */
 export type InferData<
@@ -637,7 +729,8 @@ export type InferData<
   MaxDepth extends number = -1,
   Depth extends number = 0,
 > = Transformer extends { [K in Variant]: (...args: any[]) => unknown }
-  ? UnpackValues<Awaited<ReturnType<Transformer[Variant]>>, MaxDepth, Depth>
+  ? UnpackValues<Awaited<ReturnType<Transformer[Variant]>>, MaxDepth, Depth> &
+      InferDataIdentity<Transformer, Variant>
   : never
 
 /**
@@ -665,16 +758,18 @@ export type InferData<
  * ```
  */
 export type InferVariants<Transformer, MaxDepth extends number = -1, Depth extends number = 0> = {
-  [O in {
-    [K in keyof Transformer]: 'toObject' extends K
-      ? never
-      : K extends keyof BaseTransformer<any>
+  [
+    O in {
+      [K in keyof Transformer]: 'toObject' extends K
         ? never
-        : Transformer[K] extends (...args: any[]) => unknown
-          ? K
-          : never
-  }[keyof Transformer] &
-    string]: InferData<Transformer, O, MaxDepth, Depth>
+        : K extends keyof BaseTransformer<any>
+          ? never
+          : Transformer[K] extends (...args: any[]) => unknown
+            ? K
+            : never
+    }[keyof Transformer] &
+      string
+  ]: InferData<Transformer, O, MaxDepth, Depth>
 }
 
 /**
