@@ -38,9 +38,11 @@ import {
  * ```typescript
  * class ApiSerializer extends BaseSerializer<{
  *   Wrap: 'data'
+ *   MetadataKey: 'metadata'
  *   PaginationMetaData: { page: number; totalPages: number }
  * }> {
  *   wrap = 'data' as const
+ *   metadataKey = 'metadata' as const
  *
  *   definePaginationMetaData(metaData: any) {
  *     return {
@@ -58,6 +60,7 @@ import {
 export abstract class BaseSerializer<
   Wrappers extends {
     Wrap?: string
+    MetadataKey?: string
     PaginationMetaData?: Record<string, any>
   } = {},
 > {
@@ -65,6 +68,11 @@ export abstract class BaseSerializer<
    * The key name to wrap response data under. Set to undefined to disable wrapping.
    */
   abstract wrap: Wrappers['Wrap']
+
+  /**
+   * The key name to wrap pagination metadata under. Set to undefined to disable wrapping.
+   */
+  metadataKey: Wrappers['MetadataKey'] | undefined = undefined
 
   /**
    * Transforms raw pagination metadata into the desired format for API responses.
@@ -208,6 +216,7 @@ export abstract class BaseSerializer<
     UnpackAsTopLevelPaginator<
       ResourcePaginator,
       Wrappers['Wrap'] extends string ? Wrappers['Wrap'] : 'data',
+      Wrappers['MetadataKey'] extends string ? Wrappers['MetadataKey'] : 'metadata',
       Wrappers['PaginationMetaData']
     >
   >
@@ -238,10 +247,11 @@ export abstract class BaseSerializer<
 
     if (data instanceof Paginator) {
       const wrapperKey = this.wrap ?? 'data'
+      const metadataKey = this.metadataKey ?? 'metadata'
       return data.resolve(containerResolver, 0, -1).then((value) => {
         return {
           [wrapperKey]: value.data,
-          metadata: this.definePaginationMetaData(value.metadata),
+          [metadataKey]: this.definePaginationMetaData(value.metadata),
         }
       })
     }
@@ -284,7 +294,9 @@ export abstract class BaseSerializer<
   serializeWithoutWrapping<ResourcePaginator extends PaginatorContract<any, any, any>>(
     paginator: ResourcePaginator,
     resolver?: ContainerResolver<any>
-  ): Promise<UnpackAsTopLevelPaginator<ResourcePaginator, 'data', Wrappers['PaginationMetaData']>>
+  ): Promise<
+    UnpackAsTopLevelPaginator<ResourcePaginator, 'data', 'metadata', Wrappers['PaginationMetaData']>
+  >
 
   /**
    * Serializes any other value by returning it as-is wrapped in a Promise.
