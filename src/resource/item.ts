@@ -8,7 +8,7 @@
  */
 
 import type { ContainerResolver } from '@adonisjs/fold'
-import type { RuntimeException } from '@poppinss/exception'
+import { RuntimeException } from '@poppinss/exception'
 
 import { transformAndResolve } from '../helpers.ts'
 import type { ExtractTransformerVariants, Next, UnpackAsTopLevelItem } from '../types.ts'
@@ -40,7 +40,7 @@ export class Item<
   /**
    * Private debugging error instance for troubleshooting
    */
-  #debuggingError: RuntimeException
+  #debuggingError?: RuntimeException
 
   /**
    * Type identifier for the item resource
@@ -55,14 +55,15 @@ export class Item<
    * @param transformer - Constructor for the transformer class
    * @param maxDepth - Maximum depth for nested transformations
    * @param variant - Variant method name to use for transformation
-   * @param debuggingError - Runtime exception for debugging purposes
+   * @param debuggingError - Error thrown when the resource is undefined. Create it at the
+   *                         transformer call site to get a useful stack trace
    */
   constructor(
     protected transformerData: [resource: any, ...rest: any[]],
     public transformer: { new (...args: any[]): Transformer },
     public maxDepth: MaxDepth,
     public variant: Variant,
-    debuggingError: RuntimeException
+    debuggingError?: RuntimeException
   ) {
     this.#debuggingError = debuggingError
   }
@@ -153,6 +154,7 @@ export class Item<
      * If its undefined after unpacking, then throw an error
      */
     if (resource === undefined) {
+      this.#debuggingError ??= new RuntimeException()
       this.#debuggingError.message =
         'Cannot transform undefined value. Use "this.whenLoaded(value)" to allow undefined values'
       throw this.#debuggingError

@@ -46,7 +46,7 @@ export class Collection<
   /**
    * Private debugging error instance for troubleshooting
    */
-  #debuggingError: RuntimeException
+  #debuggingError?: RuntimeException
 
   /**
    * Type identifier for the collection resource
@@ -68,7 +68,7 @@ export class Collection<
     public transformer: { new (...args: any[]): Transformer },
     public maxDepth: MaxDepth,
     public variant: Variant,
-    debuggingError: RuntimeException
+    debuggingError?: RuntimeException
   ) {
     this.#debuggingError = debuggingError
   }
