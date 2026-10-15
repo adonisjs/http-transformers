@@ -152,19 +152,24 @@ export abstract class BaseTransformer<T> {
     }
 
     if (Array.isArray(unwrappedValue)) {
-      return new Collection([unwrappedValue, rest], this, 1, 'toObject', new RuntimeException())
+      return new Collection([unwrappedValue, rest], this, 1, 'toObject')
     }
 
     if (unwrappedValue === null) {
       return null
     }
 
+    /**
+     * Capturing a stack trace is expensive, so the debugging error is only
+     * created when the item cannot be resolved. Creating it here keeps the
+     * stack pointing to the transformer call site.
+     */
     return new Item<InstanceType<Self>, 1, 'toObject'>(
       [unwrappedValue, rest],
       this,
       1,
       'toObject',
-      new RuntimeException()
+      unwrappedValue === undefined ? new RuntimeException() : undefined
     )
   }
 
@@ -194,10 +199,7 @@ export abstract class BaseTransformer<T> {
     metaData: Record<string, any>,
     ...rest: ExtractTransformerRestTypes<ConstructorParameters<Self>>
   ): Paginator<InstanceType<Self>, 1, 'toObject'> {
-    return new Paginator(
-      new Collection([data, rest], this, 1, 'toObject', new RuntimeException()),
-      metaData
-    )
+    return new Paginator(new Collection([data, rest], this, 1, 'toObject'), metaData)
   }
 
   /**
