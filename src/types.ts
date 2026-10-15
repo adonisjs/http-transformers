@@ -355,9 +355,7 @@ export type ExtractTransformerVariants<Transformer> = Exclude<
  * ```
  */
 export type ResourceDataTypes =
-  | JSONDataTypes
-  | CollectionContract<any, any, any>
-  | ItemContract<any, any, any>
+  JSONDataTypes | CollectionContract<any, any, any> | ItemContract<any, any, any>
 
 /**
  * A record of resource data types. This is what every transformer
@@ -395,23 +393,16 @@ export type UnpackKeyValue<
 > = [Value[0]] extends [never]
   ? SerializeJSONTypes<Value[1]>
   : Value[0] extends ItemContract<infer Transformer, infer LocalMaxDepth, infer Variant>
-    ?
-        | InferData<
+    ? | InferData<Transformer, Variant, MaxDepth extends -1 ? LocalMaxDepth : MaxDepth, Next[Depth]>
+      | SerializeJSONTypes<Value[1]>
+    : Value[0] extends CollectionContract<infer Transformer, infer LocalMaxDepth, infer Variant>
+      ? | InferData<
             Transformer,
             Variant,
             MaxDepth extends -1 ? LocalMaxDepth : MaxDepth,
             Next[Depth]
-          >
+          >[]
         | SerializeJSONTypes<Value[1]>
-    : Value[0] extends CollectionContract<infer Transformer, infer LocalMaxDepth, infer Variant>
-      ?
-          | InferData<
-              Transformer,
-              Variant,
-              MaxDepth extends -1 ? LocalMaxDepth : MaxDepth,
-              Next[Depth]
-            >[]
-          | SerializeJSONTypes<Value[1]>
       : SerializeJSONTypes<Value[1]>
 
 /**
@@ -450,11 +441,13 @@ export type LimitDepth<Key, Value, MaxDepth extends number, Depth extends number
  * @internal
  */
 export type UnpackOptionalValues<Data, MaxDepth extends number, Depth extends number> = {
-  [O in {
-    [K in keyof Data]: [undefined] extends [Data[K]]
-      ? LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
-      : never
-  }[keyof Data]]?: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
+  [
+    O in {
+      [K in keyof Data]: [undefined] extends [Data[K]]
+        ? LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
+        : never
+    }[keyof Data]
+  ]?: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
 }
 
 /**
@@ -469,11 +462,13 @@ export type UnpackOptionalValues<Data, MaxDepth extends number, Depth extends nu
  * @internal
  */
 export type UnpackRequiredValues<Data, MaxDepth extends number, Depth extends number> = {
-  [O in {
-    [K in keyof Data]: [undefined] extends [Data[K]]
-      ? never
-      : LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
-  }[keyof Data]]: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
+  [
+    O in {
+      [K in keyof Data]: [undefined] extends [Data[K]]
+        ? never
+        : LimitDepth<K, SplitItm<Data[K]>[0], MaxDepth, Depth>
+    }[keyof Data]
+  ]: UnpackKeyValue<SplitItm<Data[O]>, MaxDepth, Depth>
 }
 
 /**
@@ -665,16 +660,18 @@ export type InferData<
  * ```
  */
 export type InferVariants<Transformer, MaxDepth extends number = -1, Depth extends number = 0> = {
-  [O in {
-    [K in keyof Transformer]: 'toObject' extends K
-      ? never
-      : K extends keyof BaseTransformer<any>
+  [
+    O in {
+      [K in keyof Transformer]: 'toObject' extends K
         ? never
-        : Transformer[K] extends (...args: any[]) => unknown
-          ? K
-          : never
-  }[keyof Transformer] &
-    string]: InferData<Transformer, O, MaxDepth, Depth>
+        : K extends keyof BaseTransformer<any>
+          ? never
+          : Transformer[K] extends (...args: any[]) => unknown
+            ? K
+            : never
+    }[keyof Transformer] &
+      string
+  ]: InferData<Transformer, O, MaxDepth, Depth>
 }
 
 /**
