@@ -162,6 +162,10 @@ export async function resolveValues(
     }
   }
 
+  if (promises.length === 0) {
+    return output
+  }
+
   const resolvedPromises = await Promise.all(promises)
   for (const [key, value] of resolvedPromises) {
     output[key] = value
