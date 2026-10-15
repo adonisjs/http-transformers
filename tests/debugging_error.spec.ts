@@ -268,6 +268,99 @@ test.group('Transformer | undefined value stack trace', () => {
     }
   })
 
+  test('point to the transformer of a deeply nested item', async ({ assert }) => {
+    assert.plan(3)
+
+    class Profile {
+      declare bio: string
+    }
+
+    class User {
+      declare id: number
+      declare profile: Profile
+      declare posts: Post[]
+    }
+
+    class Comment {
+      declare id: number
+      declare author: User
+    }
+
+    class Post {
+      declare id: number
+      declare comments: Comment[]
+    }
+
+    class ProfileTransformer extends BaseTransformer<Profile> {
+      toObject() {
+        return {
+          bio: this.resource.bio,
+        }
+      }
+    }
+
+    class UserTransformer extends BaseTransformer<User> {
+      toObject() {
+        return {
+          id: this.resource.id,
+          profile: ProfileTransformer.transform(this.resource.profile),
+          posts: PostTransformer.transform(this.resource.posts).depth(4),
+        }
+      }
+    }
+
+    class CommentTransformer extends BaseTransformer<Comment> {
+      toObject() {
+        return {
+          id: this.resource.id,
+          author: UserTransformer.transform(this.resource.author),
+        }
+      }
+    }
+
+    class PostTransformer extends BaseTransformer<Post> {
+      toObject() {
+        return {
+          id: this.resource.id,
+          comments: CommentTransformer.transform(this.resource.comments),
+        }
+      }
+    }
+
+    const profile = new Profile()
+    profile.bio = 'Hello world'
+
+    const authorWithoutProfile = new User()
+    authorWithoutProfile.id = 2
+    authorWithoutProfile.posts = []
+
+    const comment = new Comment()
+    comment.id = 1
+    comment.author = authorWithoutProfile
+
+    const post = new Post()
+    post.id = 1
+    post.comments = [comment]
+
+    const user = new User()
+    user.id = 1
+    user.profile = profile
+    user.posts = [post]
+
+    try {
+      await apiSerializer.serialize(UserTransformer.transform(user), container.createResolver())
+    } catch (error: any) {
+      const frames = error.stack.split('\n')
+
+      assert.equal(
+        error.message,
+        'Cannot transform undefined value. Use "this.whenLoaded(value)" to allow undefined values'
+      )
+      assert.match(frames[1], /^\s+at ProfileTransformer\.transform /)
+      assert.match(frames[2], /^\s+at UserTransformer\.toObject /)
+    }
+  })
+
   test('point to the variant that transforms a nested item', async ({ assert }) => {
     assert.plan(3)
 
