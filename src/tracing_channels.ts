@@ -13,7 +13,6 @@ import type { TransformerTracingData } from './types.ts'
 /**
  * Traces transformer resolution
  */
-export const transformerResolver = diagnostics_channel.tracingChannel<
-  'adonisjs.transformer.resolver',
-  TransformerTracingData
->('adonisjs.transformer.resolver')
+export const transformerResolver = diagnostics_channel.tracingChannel<TransformerTracingData>(
+  'adonisjs.transformer.resolver'
+)
