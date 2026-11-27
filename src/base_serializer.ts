@@ -23,6 +23,7 @@ import {
   type UnpackAsTopLevelItem,
   type UnpackAsTopLevelCollection,
   type UnpackAsTopLevelPaginator,
+  type LucidPaginatorMetaData,
 } from './types.ts'
 
 /**
@@ -109,11 +110,11 @@ export abstract class BaseSerializer<
    * @example
    * ```typescript
    * const metadata = {
-   *   total: '100',
-   *   perPage: '10',
-   *   currentPage: '1',
-   *   lastPage: '10',
-   *   firstPage: '1',
+   *   total: 100,
+   *   perPage: 10,
+   *   currentPage: 1,
+   *   lastPage: 10,
+   *   firstPage: 1,
    *   firstPageUrl: '/users?page=1',
    *   lastPageUrl: '/users?page=10',
    *   nextPageUrl: '/users?page=2',
@@ -121,22 +122,12 @@ export abstract class BaseSerializer<
    * }
    *
    * if (this.isLucidPaginatorMetaData(metadata)) {
-   *   // metadata is typed as Lucid paginator metadata
+   *   // metadata is typed as LucidPaginatorMetaData
    *   console.log(metadata.currentPage)
    * }
    * ```
    */
-  protected isLucidPaginatorMetaData(metaData: unknown): metaData is {
-    total: string
-    perPage: string
-    currentPage: string
-    lastPage: string
-    firstPage: string
-    firstPageUrl: string
-    lastPageUrl: string
-    nextPageUrl: string
-    previousPageUrl: string
-  } {
+  protected isLucidPaginatorMetaData(metaData: unknown): metaData is LucidPaginatorMetaData {
     if (!metaData || typeof metaData !== 'object' || Array.isArray(metaData)) {
       return false
     }
