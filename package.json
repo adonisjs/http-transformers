@@ -1,7 +1,7 @@
 {
   "name": "@adonisjs/http-transformers",
   "description": "Serialize rich data-types with support for defining relationships with other transformers",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "engines": {
     "node": ">=24.0.0"
   },
