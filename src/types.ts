@@ -318,6 +318,39 @@ export interface PaginatorContract<
 }
 
 /**
+ * The pagination metadata that the `getMeta()` method of a Lucid paginator
+ * returns with the default naming strategy.
+ *
+ * The `pageName` property is optional, because Lucid added it in 22.5.
+ *
+ * ```typescript
+ * const metaData: LucidPaginatorMetaData = {
+ *   total: 100,
+ *   perPage: 10,
+ *   currentPage: 1,
+ *   lastPage: 10,
+ *   firstPage: 1,
+ *   firstPageUrl: '/users?page=1',
+ *   lastPageUrl: '/users?page=10',
+ *   nextPageUrl: '/users?page=2',
+ *   previousPageUrl: null,
+ * }
+ * ```
+ */
+export type LucidPaginatorMetaData = {
+  total: number
+  perPage: number
+  currentPage: number
+  lastPage: number
+  firstPage: number
+  pageName?: string
+  firstPageUrl: string
+  lastPageUrl: string
+  nextPageUrl: string | null
+  previousPageUrl: string | null
+}
+
+/**
  * Extracts the variant methods of a transformer class. Any method that returns ResourceData
  * or Promise<ResourceData> can be picked for serialization.
  *
